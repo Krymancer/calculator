@@ -13,6 +13,9 @@ String.prototype.removeCharAt = function (i) {
 let expression = '0';
 let flagClear = true;
 
+let expressionToParse = '';
+let index = 0;
+
 buttons.forEach((button) => {
   button.addEventListener('click', () => {
     buttonClick(button.innerHTML);
@@ -26,7 +29,12 @@ function buttonClick(button) {
       break;
     }
     case '⌫': {
-      expression = expression.removeCharAt(expression.length - 1);
+      if (expression.length == 1) {
+        expression = '0';
+        flagClear = true;
+      } else {
+        expression = expression.removeCharAt(expression.length - 1);
+      }
       break;
     }
     case '⁺∕₋': {
@@ -35,6 +43,22 @@ function buttonClick(button) {
       } else {
         expression = '-' + expression;
       }
+      break;
+    }
+    case 'CE': {
+      let id = 0;
+      for (let i = expression.length - 1; i > 0; i--) {
+        if (
+          expression[i] == '+' ||
+          expression[i] == '-' ||
+          expression[i] == '÷' ||
+          expression[i] == '×'
+        ) {
+          id = i;
+          break;
+        }
+      }
+      if (id != 0) expression = expression.substring(0, id);
       break;
     }
     case '=': {
@@ -61,55 +85,69 @@ function evaluate(exp) {
   query.innerHTML = exp;
   exp = exp.replace('÷', '/');
   exp = exp.replace('×', '*');
-  expression = eval(exp);
+  exp = exp.replace('²', '**2');
+
+  expressionToParse = exp;
+
+  //expression = eval(exp).toString();
+  expression = solve().toString();
+  index = 0;
+  expressionToParse = '';
   flagClear = true;
 }
 
-let expressionToParse = '3*2+4*1+(4+9)*6';
-let index = 0;
+//Parse expression
+
+function solve() {
+  let result = term();
+  while (peek() == '+' || peek() == '-') {
+    if (get() == '+') {
+      result += term();
+    } else {
+      result -= term();
+    }
+  }
+  return result;
+}
+
+function term() {
+  let result = factor();
+  while (peek() == '*' || peek() == '/') {
+    if (get() == '*') {
+      result *= factor();
+    } else {
+      result /= factor();
+    }
+  }
+  return result;
+}
+
+function factor() {
+  let n = 0;
+  if (peek() >= '0' && peek() <= '9') {
+    n = number();
+  } else if (peek() == '-') {
+    get();
+    return -factor();
+  }
+  return n;
+}
+
+function number() {
+  let result = 0;
+  while (peek() >= '0' && peek() <= '9') {
+    let i = get() - '0'; // lazy way to convert string to number
+    result = result * 10 + i;
+  }
+  return result;
+}
 
 function peek() {
-  return expressionToParse;
+  return expressionToParse[index];
 }
 
 function get() {
   return expressionToParse[index++];
 }
 
-function number() {
-  let result = get() - '0';
-  while (peek() >= '0' && peek() <= '9') {
-    result = 10 * result + get() - '0';
-  }
-  return result;
-}
-
-function factor() {
-  if (peek() >= '0' && peek() <= '9') return number();
-  else if (peek() == '(') {
-    get(); // '('
-    let result = express();
-    get(); // ')'
-    return result;
-  } else if (peek() == '-') {
-    get();
-    return -factor();
-  }
-  return 0; // error
-}
-
-function term() {
-  let result = factor();
-  while (peek() == '*' || peek() == '/')
-    if (get() == '*') result *= factor();
-    else result /= factor();
-  return result;
-}
-
-function express() {
-  let result = term();
-  while (peek() == '+' || peek() == '-')
-    if (get() == '+') result += term();
-    else result -= term();
-  return result;
-}
+// End Parse Expression
